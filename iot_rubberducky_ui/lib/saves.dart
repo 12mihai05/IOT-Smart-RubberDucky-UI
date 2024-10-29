@@ -21,6 +21,9 @@ class Saves extends StatelessWidget {
 //find my ip and the last byte loop it from 1 to 254 and find which one retrieves to the /ping endpoint request "Rubber Ducky detected!"
 //write in the bottom bar of the flutter app the ip of the ping and "confirmed"
 
+//when retrive the data from backend for executing we will make chunks from the script 10 by 10
+//after making chunks we will execute them one by one and after we get the succesfull request we continue with the next chunl till we execute them all
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Saved Scripts"),
