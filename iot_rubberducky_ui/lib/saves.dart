@@ -14,6 +14,13 @@ class Saves extends StatelessWidget {
     final Dio dio = Dio(); // Create an instance of Dio
     const String baseUrl = "http://192.168.127.66:8080"; // Define the base URL
 
+//make algorithm to find all the dynamic ips and the first which retrieves to the /ping endpoint request "Rubber Ducky detected!" 
+//and takes that dynamic ip and put it in baseUrl variable  as const String baseUrl = "http://(ip)";
+// using arp -a command in cmd
+
+//find my ip and the last byte loop it from 1 to 254 and find which one retrieves to the /ping endpoint request "Rubber Ducky detected!"
+//write in the bottom bar of the flutter app the ip of the ping and "confirmed"
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Saved Scripts"),

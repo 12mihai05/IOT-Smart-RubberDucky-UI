@@ -10,7 +10,7 @@ class Home extends StatelessWidget {
   Widget build(BuildContext context) {
     final TextEditingController _inputController = TextEditingController();
     final Dio dio = Dio(); // Create an instance of Dio
-    const String baseUrl = "http://192.168.127.66:8080"; // Define the base URL
+    const String baseUrl = "http://172.20.10.2:8080"; // Define the base URL
 
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 19, 19, 19),
