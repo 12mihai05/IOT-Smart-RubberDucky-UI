@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'register.dart';
-import 'home.dart'; // Add this import statement
+import 'home.dart';
 
 class Login extends StatefulWidget {
-  const Login({Key? key}) : super(key: key); // Updated constructor
+  const Login({Key? key}) : super(key: key);
 
   @override
   State<Login> createState() => _LoginState();
@@ -16,23 +16,37 @@ class _LoginState extends State<Login> {
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
-  final FirebaseAuth _auth = FirebaseAuth.instance; // Initialize FirebaseAuth
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Future<void> _login() async {
-    if (_formKey.currentState?.validate() ?? false) {
-      try {
-        // Using email as the username for authentication
-        await _auth.signInWithEmailAndPassword(
-          email: _usernameController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
+  @override
+  void initState() {
+    super.initState();
+
+    // Listen for authentication state changes
+    _auth.authStateChanges().listen((User? user) {
+      if (user != null) {
+        // Navigate to Home page if the user is logged in
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const Home()),
         );
+      }
+    });
+  }
+
+  Future<void> _login() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      try {
+        // Attempt to sign in
+        await _auth.signInWithEmailAndPassword(
+          email: _usernameController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+
+        // After successful sign-in, Firebase handles the session automatically
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())), // Show error message
+          SnackBar(content: Text(e.toString())),
         );
       }
     }
@@ -45,7 +59,7 @@ class _LoginState extends State<Login> {
       appBar: AppBar(
         title: const Text("Login"),
         centerTitle: true,
-        backgroundColor: Colors.orange, // App bar color
+        backgroundColor: Colors.orange,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -72,14 +86,14 @@ class _LoginState extends State<Login> {
                         labelStyle: const TextStyle(color: Colors.white),
                         prefixIcon: const Icon(Icons.person, color: Colors.white),
                         floatingLabelStyle: const TextStyle(color: Colors.orange),
-                        border: OutlineInputBorder(
-                          borderSide: const BorderSide(color: Colors.orange),
+                        border: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.orange),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(color: Colors.white),
+                        enabledBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(color: Colors.orange),
+                        focusedBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.orange),
                         ),
                       ),
                       style: const TextStyle(color: Colors.white),
@@ -104,14 +118,14 @@ class _LoginState extends State<Login> {
                         labelStyle: const TextStyle(color: Colors.white),
                         prefixIcon: const Icon(Icons.lock, color: Colors.white),
                         floatingLabelStyle: const TextStyle(color: Colors.orange),
-                        border: OutlineInputBorder(
-                          borderSide: const BorderSide(color: Colors.orange),
+                        border: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.orange),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(color: Colors.white),
+                        enabledBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(color: Colors.orange),
+                        focusedBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.orange),
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -136,7 +150,7 @@ class _LoginState extends State<Login> {
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: _login, // Call the login method
+                    onPressed: _login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,
                     ),

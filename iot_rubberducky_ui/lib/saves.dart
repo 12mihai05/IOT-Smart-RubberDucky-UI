@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:dio/dio.dart'; // Import Dio package for HTTP requests
+import 'package:firebase_database/firebase_database.dart';
 import 'home.dart';
 
 class Saves extends StatelessWidget {
@@ -11,29 +11,20 @@ class Saves extends StatelessWidget {
   Widget build(BuildContext context) {
     // Get the current user
     User? user = FirebaseAuth.instance.currentUser;
-    final Dio dio = Dio(); // Create an instance of Dio
-    const String baseUrl = "http://192.168.127.66:8080"; // Define the base URL
 
-//make algorithm to find all the dynamic ips and the first which retrieves to the /ping endpoint request "Rubber Ducky detected!" 
-//and takes that dynamic ip and put it in baseUrl variable  as const String baseUrl = "http://(ip)";
-// using arp -a command in cmd
-
-//find my ip and the last byte loop it from 1 to 254 and find which one retrieves to the /ping endpoint request "Rubber Ducky detected!"
-//write in the bottom bar of the flutter app the ip of the ping and "confirmed"
-
-//when retrive the data from backend for executing we will make chunks from the script 10 by 10
-//after making chunks we will execute them one by one and after we get the succesfull request we continue with the next chunl till we execute them all
+    // TextEditingController for device name
+    final TextEditingController _deviceController = TextEditingController();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Saved Scripts"),
         centerTitle: true,
-        backgroundColor: Colors.orange, // App bar color
+        backgroundColor: Colors.orange,
       ),
       body: Container(
-        color: const Color.fromARGB(255, 19, 19, 19), // Background color of the body
-        width: double.infinity, // Full width
-        height: double.infinity, // Full height
+        color: const Color.fromARGB(255, 19, 19, 19),
+        width: double.infinity,
+        height: double.infinity,
         padding: const EdgeInsets.all(16.0),
         child: user == null
             ? Center(
@@ -47,7 +38,7 @@ class Saves extends StatelessWidget {
                     .collection('users')
                     .doc(user.uid)
                     .collection('Saves')
-                    .orderBy('timestamp', descending: true) // Order by timestamp
+                    .orderBy('timestamp', descending: true)
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -70,6 +61,32 @@ class Saves extends StatelessWidget {
                   return SingleChildScrollView(
                     child: Column(
                       children: [
+                        // Device TextField
+                        Container(
+                          constraints: const BoxConstraints(maxWidth: 400),
+                          width: double.infinity,
+                          child: TextField(
+                            controller: _deviceController,
+                            cursorColor: Colors.orange,
+                            decoration: InputDecoration(
+                              labelText: "Enter device",
+                              labelStyle: const TextStyle(color: Colors.white),
+                              floatingLabelStyle: const TextStyle(color: Colors.orange),
+                              border: OutlineInputBorder(
+                                borderSide: const BorderSide(color: Colors.white),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: const BorderSide(color: Colors.white),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.orange, width: 2),
+                              ),
+                            ),
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
                         // Build containers for each script
                         ...scripts.map((doc) {
                           final title = doc['title'] ?? 'No Title';
@@ -78,8 +95,8 @@ class Saves extends StatelessWidget {
                           return Container(
                             margin: const EdgeInsets.only(bottom: 16.0),
                             constraints: const BoxConstraints(
-                              minWidth: 500, // Set the minimum width here
-                              minHeight: 100, // Set a minimum height
+                              minWidth: 500,
+                              minHeight: 100,
                             ),
                             padding: const EdgeInsets.all(16.0),
                             decoration: BoxDecoration(
@@ -107,36 +124,28 @@ class Saves extends StatelessWidget {
                                   children: [
                                     ElevatedButton(
                                       onPressed: () async {
-                                        try {
-                                          // Send the script to the server
-                                          final response = await dio.post(
-                                            "$baseUrl/execute",
-                                            data: script,
-                                            options: Options(
-                                              headers: {
-                                                "Content-Type": "text/plain"
-                                              }, // Set header for plain text
-                                            ),
-                                          );
+                                        final deviceName = _deviceController.text.trim();
 
-                                          // Check the response
-                                          if (response.statusCode == 200) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  "Script executed successfully: ${response.data}",
-                                                ),
-                                              ),
-                                            );
-                                          } else {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  "Execution failed: ${response.statusCode}",
-                                                ),
-                                              ),
-                                            );
-                                          }
+                                        if (deviceName.isEmpty) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text("Please enter a device name")),
+                                          );
+                                          return;
+                                        }
+
+                                        try {
+                                          // Firebase Realtime Database reference for commands
+                                          DatabaseReference ref = FirebaseDatabase.instance
+                                              .ref("devices/$deviceName/commands");
+
+                                          await ref.set({
+                                            "command": script,
+                                            "timestamp": DateTime.now().millisecondsSinceEpoch ~/ 1000,
+                                          });
+
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text("Script executed successfully")),
+                                          );
                                         } catch (e) {
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(content: Text("Error: $e")),
@@ -144,11 +153,73 @@ class Saves extends StatelessWidget {
                                         }
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            const Color.fromARGB(255, 19, 19, 19),
+                                        backgroundColor: const Color.fromARGB(255, 19, 19, 19),
                                       ),
-                                      child: const Text("Execute",
-                                          style: TextStyle(color: Colors.orange)),
+                                      child: const Text("Execute", style: TextStyle(color: Colors.orange)),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        // Show dialog to edit the script
+                                        TextEditingController editController = TextEditingController(text: script);
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) {
+                                            return AlertDialog(
+                                              backgroundColor: const Color.fromARGB(255, 19, 19, 19), // Black background
+                                              title: const Text(
+                                                "Edit Script",
+                                                style: TextStyle(color: Colors.white), // White text
+                                              ),
+                                              content: TextField(
+                                                controller: editController,
+                                                maxLines: 5,
+                                                style: const TextStyle(color: Colors.white), // White text
+                                                decoration: const InputDecoration(
+                                                  hintText: "Edit script here",
+                                                  hintStyle: TextStyle(color: Colors.orange), // Orange hint text
+                                                  focusedBorder: UnderlineInputBorder(
+                                                    borderSide: BorderSide(color: Colors.orange), // Orange border
+                                                  ),
+                                                  enabledBorder: UnderlineInputBorder(
+                                                    borderSide: BorderSide(color: Colors.white), // White border
+                                                  ),
+                                                ),
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () {
+                                                    Navigator.of(context).pop(); // Close dialog
+                                                  },
+                                                  child: const Text("Cancel", style: TextStyle(color: Colors.orange)), // Orange text
+                                                ),
+                                                TextButton(
+                                                  onPressed: () async {
+                                                    // Update script in Firestore
+                                                    await FirebaseFirestore.instance
+                                                        .collection('users')
+                                                        .doc(user.uid)
+                                                        .collection('Saves')
+                                                        .doc(doc.id)
+                                                        .update({'script': editController.text});
+
+                                                    Navigator.of(context).pop(); // Close dialog
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text("Script updated successfully"),
+                                                      ),
+                                                    );
+                                                  },
+                                                  child: const Text("Save", style: TextStyle(color: Colors.orange)), // Orange text
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue, // Color for edit button
+                                      ),
+                                      child: const Text("Edit", style: TextStyle(color: Colors.white)),
                                     ),
                                     ElevatedButton(
                                       onPressed: () async {
@@ -157,10 +228,9 @@ class Saves extends StatelessWidget {
                                             .collection('users')
                                             .doc(user.uid)
                                             .collection('Saves')
-                                            .doc(doc.id) // Use document ID to delete
+                                            .doc(doc.id)
                                             .delete();
 
-                                        // Show a confirmation message
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(
                                             content: Text("Script deleted successfully"),
@@ -168,10 +238,9 @@ class Saves extends StatelessWidget {
                                         );
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.red, // Set color for delete button
+                                        backgroundColor: Colors.red,
                                       ),
-                                      child: const Text("Delete",
-                                          style: TextStyle(color: Colors.white)),
+                                      child: const Text("Delete", style: TextStyle(color: Colors.white)),
                                     ),
                                   ],
                                 ),
@@ -180,8 +249,7 @@ class Saves extends StatelessWidget {
                           );
                         }).toList(),
 
-                        // Back to Home button
-                        const SizedBox(height: 16.0), // Space above the button
+                        const SizedBox(height: 16.0),
                         ElevatedButton(
                           onPressed: () {
                             // Navigate to Home
@@ -192,10 +260,9 @@ class Saves extends StatelessWidget {
                           },
                           style: ElevatedButton.styleFrom(
                             minimumSize: Size(180, 50),
-                            backgroundColor: Colors.orange, // Button color
+                            backgroundColor: Colors.orange,
                           ),
-                          child: const Text("Back to Home",
-                              style: TextStyle(color: Colors.white)), // Button text color
+                          child: const Text("Back to Home", style: TextStyle(color: Colors.white)),
                         ),
                       ],
                     ),
